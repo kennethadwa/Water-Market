@@ -84,11 +84,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                             </label>
                                         </div>
                                     </div>
-                                    <div class="col-6">
-                                        <div class="forgot-password text-end">
-                                            <a href="reset-password.html">Forgot password?</a>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             <?php if (!empty($error)): ?>

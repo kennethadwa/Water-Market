@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 <head>
     <title>Add Transaction</title>
     <meta charset="utf-8">
@@ -42,14 +42,13 @@
             background-color: #218838;
         }
     </style>
-</head> 
-
-<body class="app">   
+</head>
+<body class="app">
     <header class="app-header fixed-top">
         <?php @include('navbar.php'); ?>
         <?php @include('sidebar.php'); ?>
     </header>
-    
+
     <div class="app-wrapper">
         <div class="container">
             <h1 class="my-4 text-center">Add Transaction</h1>
@@ -64,14 +63,14 @@
                         <select id="product_id" name="product_id" required>
                             <?php
                             include('config.php');
-
                             try {
-                                $stmt = $conn->query("SELECT product_id, product_name FROM products");
+                                $stmt = $conn->prepare("SELECT product_id, product_name, stock FROM products WHERE stock > 0");
+                                $stmt->execute();
                                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo '<option value="' . htmlspecialchars($row['product_id']) . '">' . htmlspecialchars($row['product_name']) . '</option>';
+                                    echo '<option value="' . htmlspecialchars($row['product_id']) . '">' . htmlspecialchars($row['product_name']) . ' (' . htmlspecialchars($row['stock']) . ' in stock)</option>';
                                 }
                             } catch (PDOException $e) {
-                                echo 'Query failed: ' . $e->getMessage();
+                                echo 'Error fetching products: ' . $e->getMessage();
                             }
                             ?>
                         </select>
@@ -80,12 +79,14 @@
                         <label for="transaction_type">Transaction Type:</label>
                         <select id="transaction_type" name="transaction_type" required>
                             <option value="Walk In">Walk In</option>
+                            <option value="Bulk Order">Bulk Order</option>
+                            <option value="Phone Order">Phone Order</option>
                             <option value="For Delivery">For Delivery</option>
                         </select>
-                    </div>
+                    </div>    
                     <div class="form-group">
                         <label for="quantity">Quantity:</label>
-                        <input type="number" id="quantity" name="quantity" placeholder="Enter quantity" required>
+                        <input type="number" id="quantity" name="quantity" placeholder="Enter quantity" required min="1">
                     </div>
                     <div class="form-group">
                         <label for="payment_status">Payment Status:</label>
@@ -101,7 +102,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Javascript -->          
     <script src="assets/plugins/popper.min.js"></script>
     <script src="assets/plugins/bootstrap/js/bootstrap.min.js"></script>  

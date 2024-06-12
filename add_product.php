@@ -5,7 +5,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $product_name = $_POST['product_name'];
     $description = $_POST['description'];
     $price = $_POST['price'];
-    $stock = $_POST['stock']; 
+    $stock = $_POST['stock'];
 
     $target_dir = "image_product/";
     if (!is_dir($target_dir)) {
@@ -23,12 +23,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $uploadOk = 0;
     }
 
-    if ($_FILES["product_image"]["size"] > 5000000) { 
+    if ($_FILES["product_image"]["size"] > 5000000) {
         echo "Sorry, your file is too large.";
         $uploadOk = 0;
     }
 
-    if ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg" && $imageFileType != "gif") {
+    if (!in_array($imageFileType, ["jpg", "jpeg", "png", "gif"])) {
         echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
         $uploadOk = 0;
     }
@@ -41,16 +41,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             try {
                 $sql = "INSERT INTO products (product_name, description, price, stock, image_path, created_at) VALUES (:product_name, :description, :price, :stock, :image_path, NOW())";
-                
                 $stmt = $conn->prepare($sql);
                 $stmt->bindParam(':product_name', $product_name, PDO::PARAM_STR);
                 $stmt->bindParam(':description', $description, PDO::PARAM_STR);
                 $stmt->bindParam(':price', $price, PDO::PARAM_STR);
-                $stmt->bindParam(':stock', $stock, PDO::PARAM_INT); 
+                $stmt->bindParam(':stock', $stock, PDO::PARAM_INT);
                 $stmt->bindParam(':image_path', $image_path, PDO::PARAM_STR);
 
                 if ($stmt->execute()) {
-                    header('Location: inventory.php'); 
+                    header('Location: inventory.php');
                     exit();
                 } else {
                     echo "Error: Could not execute the query.";

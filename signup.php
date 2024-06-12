@@ -13,7 +13,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         // Prepare SQL query
-        $sql = "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, 'customer')";
+        $sql = "INSERT INTO users (name, email, password, role) VALUES (:name, :email, :password, 'admin')";
         
         // Prepare the statement
         $stmt = $conn->prepare($sql);

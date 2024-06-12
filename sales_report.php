@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Sales</title>
+    <title>Sales Report</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Portal - Bootstrap 5 Admin Dashboard Template For Developers">
-    <meta name="author" content="Xiaoying Riley at 3rd Wave Media">    
-    <link rel="shortcut icon" href="favicon.ico"> 
+    <meta name="author" content="Xiaoying Riley at 3rd Wave Media">
+    <link rel="shortcut icon" href="favicon.ico">
     <script defer src="assets/plugins/fontawesome/js/all.min.js"></script>
     <link id="theme-style" rel="stylesheet" href="assets/css/portal.css">
     <style>
@@ -54,7 +54,7 @@
     <div class="app-wrapper">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center my-4">
-                <h1>Sales Records</h1>
+                <h1>Sales Report</h1>
                 <div class="add-transaction-btn">
                     <a href="add_transaction.php" class="btn btn-success">
                         <i class="fas fa-plus"></i> Add Transaction
@@ -65,7 +65,7 @@
                 <div class="col-md-6">
                     <label>
                         Show 
-                        <select id="entries" class="form-select form-select-sm" aria-controls="salesTable">
+                        <select id="entries" class="form-select form-select-sm" aria-controls="salesReportTable">
                             <option value="10">10</option>
                             <option value="25">25</option>
                             <option value="50">50</option>
@@ -78,16 +78,18 @@
                     <input type="search" id="customSearchBox" class="form-control form-control-sm" placeholder="Search...">
                 </div>
             </div>
-            <table id="salesTable" class="table table-striped">
+            <table id="salesReportTable" class="table table-striped">
                 <thead>
                     <tr>
-                        <th scope="col">Customer Name</th>
+                        <th scope="col">Transaction Date</th>
+                        <th scope="col">Customer</th>
                         <th scope="col">Product</th>
-                        <th scope="col">Transaction Type</th>
                         <th scope="col">Quantity</th>
-                        <th scope="col">Total Price</th>
-                        <th scope="col">Payment Status</th>
-                        <th scope="col">Actions</th>
+                        <th scope="col">Unit Price</th>
+                        <th scope="col">Total Price</th>                    
+                        <th scope="col">Transaction Type</th>
+                        <th scope="col">Payment Method</th>
+                        <th scope="col">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -95,44 +97,57 @@
                     include('config.php');
 
                     try {
-                        // Fetch data and calculate total price
-                        $stmt = $conn->prepare("
-                            SELECT s.sale_id, s.customer_name, p.product_name, s.transaction_type, s.quantity, p.price, s.payment_status, s.transaction_date
-                            FROM sales s
-                            JOIN products p ON s.product_id = p.product_id
-                            ORDER BY s.transaction_date DESC
-                        ");
+                        $sql = "
+                            SELECT 
+                                s.transaction_date,
+                                s.customer_name,
+                                p.product_name,
+                                s.quantity,
+                                p.price AS unit_price,
+                                (s.quantity * p.price) AS total_price,
+                                s.transaction_type,
+                                sr.report_id,
+                                sr.payment_method
+                            FROM 
+                                sales_report sr
+                            INNER JOIN 
+                                sales s ON sr.sale_id = s.sale_id
+                            INNER JOIN 
+                                products p ON s.product_id = p.product_id
+                        ";
+
+                        $stmt = $conn->prepare($sql);
                         $stmt->execute();
 
                         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                            $total_price = $row['price'] * $row['quantity'];
                             echo '<tr>';
+                            echo '<td>' . htmlspecialchars($row['transaction_date']) . '</td>';
                             echo '<td>' . htmlspecialchars($row['customer_name']) . '</td>';
                             echo '<td>' . htmlspecialchars($row['product_name']) . '</td>';
-                            echo '<td>' . htmlspecialchars($row['transaction_type']) . '</td>';
                             echo '<td>' . htmlspecialchars($row['quantity']) . '</td>';
-                            echo '<td>' . htmlspecialchars($total_price) . '</td>';
-                            echo '<td>' . htmlspecialchars($row['payment_status']) . '</td>';
+                            echo '<td>₱' . htmlspecialchars($row['unit_price']) . '</td>';
+                            echo '<td>₱' . htmlspecialchars($row['total_price']) . '</td>';       
+                            echo '<td>' . htmlspecialchars($row['transaction_type']) . '</td>';
                             echo '<td>';
-                            echo '<div class="btn-group" role="group" aria-label="Actions">';
-                            echo '<a href="edit_sale.php?id=' . htmlspecialchars($row['sale_id']) . '" class="btn btn-primary btn-sm m-1"><i class="fas fa-edit"></i> Edit</a>';
+                            echo '<select class="form-select form-select-sm" id="payment_method_' . htmlspecialchars($row['report_id']) . '">';
+                            $methods = ['Cash', 'Gcash', 'Paymaya'];
+                            foreach ($methods as $method) {
+                                $selected = ($method == $row['payment_method']) ? 'selected' : '';
+                                echo '<option value="' . $method . '" ' . $selected . '>' . $method . '</option>';
+                            }
+                            echo '</select>';
+                            echo '</td>';
+                            echo '<td>';
+                            echo '<button type="button" class="btn btn-primary btn-sm m-1" onclick="updatePaymentMethod(' . htmlspecialchars($row['report_id']) . ')"><i class="fas fa-edit"></i> Edit</button>';
                             echo '<form method="POST" action="delete_sale.php" style="display:inline-block;" onsubmit="return confirm(\'Are you sure you want to delete this transaction?\');">';
-                            echo '<input type="hidden" name="sale_id" value="' . htmlspecialchars($row['sale_id']) . '">';
+                            echo '<input type="hidden" name="report_id" value="' . htmlspecialchars($row['report_id']) . '">';
                             echo '<button type="submit" class="btn btn-danger btn-sm m-1"><i class="fas fa-trash-alt"></i> Delete</button>';
                             echo '</form>';
-                            echo '</div>';
                             echo '</td>';
                             echo '</tr>';
-                            
-                            // Update the total_price in the database
-                            $updateStmt = $conn->prepare("UPDATE sales SET total_price = :total_price WHERE sale_id = :sale_id");
-                            $updateStmt->execute([
-                                ':total_price' => $total_price,
-                                ':sale_id' => $row['sale_id']
-                            ]);
                         }
                     } catch (PDOException $e) {
-                        echo 'Query failed: ' . $e->getMessage();
+                        echo 'Error: ' . $e->getMessage();
                     }
                     ?>
                 </tbody>
@@ -151,7 +166,7 @@
     <script src="assets/js/app.js"></script> 
     <script>
         $(document).ready(function() {
-            var table = $('#salesTable').DataTable({
+            var table = $('#salesReportTable').DataTable({
                 "paging": true,
                 "searching": true,
                 "info": true,
@@ -168,6 +183,23 @@
                 table.search($(this).val()).draw();
             });
         });
+
+        function updatePaymentMethod(reportId) {
+            var paymentMethod = $('#payment_method_' + reportId).val();
+            $.ajax({
+                url: 'update_payment_method.php',
+                type: 'POST',
+                data: { report_id: reportId, payment_method: paymentMethod },
+                success: function(response) {
+                    alert('Payment method updated successfully.');
+                    location.reload(); 
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating payment method:', error);
+                    alert('Failed to update payment method. Please try again.');
+                }
+            });
+        }
     </script>
 </body>
 </html>
